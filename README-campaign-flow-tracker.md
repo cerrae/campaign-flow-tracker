@@ -2,7 +2,7 @@
 
 > A real-time Agile Kanban board for managing concurrent digital marketing campaigns — built from experience coordinating 10+ campaigns simultaneously at Belk and Victoria's Secret & Co.
 
-**[🚀 Live Demo](https://yourusername.github.io/campaign-flow-tracker)** &nbsp;|&nbsp; Built by [Sun Cerrae Quinones](https://linkedin.com/in/suncerrae)
+**[🚀 Live Demo](https://cerrae.github.io/campaign-flow-tracker)** &nbsp;|&nbsp; Built by [Sun Cerrae Quinones](https://linkedin.com/in/suncerrae)
 
 ---
 
@@ -60,13 +60,13 @@ CampaignFlow replicates the visibility layer I wished existed — a single board
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/campaign-flow-tracker.git
+git clone https://github.com/cerrae/campaign-flow-tracker.git
 
 # Open in browser — no install needed
 open index.html
 ```
 
-Or just visit the **[live demo](https://yourusername.github.io/campaign-flow-tracker)**.
+Or just visit the **[live demo](https://cerrae.github.io/campaign-flow-tracker)**.
 
 ---
 
@@ -82,4 +82,4 @@ Built by **Sun Cerrae Quinones** — Digital Project Coordinator with 8+ years o
 
 - 📧 suncquinones@gmail.com
 - 💼 [LinkedIn](https://linkedin.com/in/suncerrae)
-- 🗂 [Full Portfolio](https://github.com/yourusername)
+- 🗂 [Full Portfolio](https://github.com/cerrae)
