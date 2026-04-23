@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CampaignFlow — Agile Campaign Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #7c5cfc;
+    --accent2: #fc5c8a;
+    --accent3: #5cfcb4;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --todo: #fc5c8a;
+    --inprog: #7c5cfc;
+    --done: #5cfcb4;
+    --review: #fcc85c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,92,252,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,92,252,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.9);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .header-actions { display: flex; gap: 12px; align-items: center; }
+  .btn {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #9070ff; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124,92,252,0.4); }
+
+  /* Stats bar */
+  .stats-bar {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    background: var(--surface);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: background 0.2s;
+  }
+  .stat-card:hover { background: var(--surface2); }
+  .stat-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+  .stat-val { font-size: 28px; font-weight: 800; line-height: 1; margin-top: 4px; }
+
+  /* Main layout */
+  main {
+    position: relative;
+    z-index: 1;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    width: 280px;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus-within { border-color: var(--accent); }
+  .search-box input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    width: 100%;
+  }
+  .search-box input::placeholder { color: var(--muted); }
+  .filter-pills { display: flex; gap: 8px; }
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pill.active, .pill:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,92,252,0.1); }
+
+  /* Kanban */
+  .kanban {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .column {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .col-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .col-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .col-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+  .col-add {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .col-add:hover { border-color: var(--accent); color: var(--accent); }
+  .col-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 200px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: grab;
+    transition: all 0.2s;
+    animation: fadeIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .card[data-status="todo"]::before { background: var(--todo); }
+  .card[data-status="inprog"]::before { background: var(--inprog); }
+  .card[data-status="review"]::before { background: var(--review); }
+  .card[data-status="done"]::before { background: var(--done); }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .card:active { cursor: grabbing; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .card-title { font-size: 14px; font-weight: 700; line-height: 1.4; margin-bottom: 8px; }
+  .card-desc { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; font-family: 'DM Mono', monospace; }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-due {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .card-due.overdue { color: var(--todo); }
+  .card-priority {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .priority-high { color: var(--todo); border-color: rgba(252,92,138,0.3); background: rgba(252,92,138,0.1); }
+  .priority-med { color: var(--review); border-color: rgba(252,200,92,0.3); background: rgba(252,200,92,0.1); }
+  .priority-low { color: var(--done); border-color: rgba(92,252,180,0.3); background: rgba(92,252,180,0.1); }
+  .card-avatars { display: flex; gap: -4px; }
+  .avatar {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: -4px;
+  }
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .card-btn {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 5px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .card-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* KPI section */
+  .kpi-section {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+  }
+  .kpi-chart {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .kpi-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    height: 120px;
+  }
+  .bar-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+  }
+  .bar-track {
+    width: 100%;
+    background: var(--surface2);
+    border-radius: 4px 4px 0 0;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 4px 4px 0 0;
+    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .bar-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+
+  .activity-feed {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    overflow: hidden;
+  }
+  .activity-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.3s ease;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .activity-text { font-size: 12px; line-height: 1.4; }
+  .activity-text strong { color: var(--accent); }
+  .activity-time { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    width: 480px;
+    max-width: 90vw;
+    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal h2 { font-size: 20px; font-weight: 800; margin-bottom: 24px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; letter-spacing: 0.5px; display: block; margin-bottom: 8px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .form-group select option { background: var(--surface2); }
+  .modal-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
+
+  /* Brief section */
+  .brief-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+  }
+  .brief-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+  .brief-title { font-size: 22px; font-weight: 800; }
+  .brief-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .brief-badge {
+    background: rgba(124,92,252,0.15);
+    border: 1px solid rgba(124,92,252,0.3);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    white-space: nowrap;
+  }
+  .brief-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .brief-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .brief-card-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 6px; }
+  .brief-card-val { font-size: 15px; font-weight: 700; }
+  .brief-body { font-size: 14px; color: var(--muted); line-height: 1.8; font-family: 'DM Mono', monospace; }
+  .brief-body strong { color: var(--text); }
+
+  .drag-over { background: rgba(124,92,252,0.1); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    CampaignFlow
+  </div>
+  <div class="header-actions">
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">Sun Cerrae Quinones • PM Portfolio</div>
+    <button class="btn btn-ghost">Export CSV</button>
+    <button class="btn btn-primary" onclick="openModal()">+ New Campaign</button>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-dot" style="background:var(--todo)"></div>
+    <div>
+      <div class="stat-label">To Do</div>
+      <div class="stat-val" id="count-todo" style="color:var(--todo)">0</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-dot" style="background:var(--inprog)"></div>
+    <div>
+      <div class="stat-label">In Progress</div>
+      <div class="stat-val" id="count-inprog" style="color:var(--inprog)">0</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-dot" style="background:var(--review)"></div>
+    <div>
+      <div class="stat-label">In Review</div>
+      <div class="stat-val" id="count-review" style="color:var(--review)">0</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-dot" style="background:var(--done)"></div>
+    <div>
+      <div class="stat-label">Done</div>
+      <div class="stat-val" id="count-done" style="color:var(--done)">0</div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <!-- Project Brief -->
+  <div class="brief-section">
+    <div class="brief-header">
+      <div>
+        <div class="brief-title">📋 Project Brief — CampaignFlow Tracker</div>
+        <div class="brief-subtitle">Built by Sun Cerrae Quinones · Digital PM Portfolio Project #1</div>
+      </div>
+      <div class="brief-badge">v1.0 · Live</div>
+    </div>
+    <div class="brief-grid">
+      <div class="brief-card">
+        <div class="brief-card-label">Problem</div>
+        <div class="brief-card-val">Manual campaign tracking across 10+ concurrent projects</div>
+      </div>
+      <div class="brief-card">
+        <div class="brief-card-label">Solution</div>
+        <div class="brief-card-val">Real-time Agile board with KPI dashboarding</div>
+      </div>
+      <div class="brief-card">
+        <div class="brief-card-label">Impact</div>
+        <div class="brief-card-val">~40% reduction in missed deadlines (modeled)</div>
+      </div>
+    </div>
+    <div class="brief-body">
+      <strong>Context:</strong> Managing 10+ concurrent digital campaigns at Belk and Victoria's Secret with JIRA required significant context-switching and manual status updates. This app centralizes campaign visibility across four workflow stages, enabling stakeholder updates at a glance.<br><br>
+      <strong>Stack:</strong> Vanilla HTML/CSS/JS · Drag-and-drop API · Local storage persistence · Responsive grid layout<br>
+      <strong>Methodology:</strong> Agile/Scrum · Kanban board · Sprint-style campaign management
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <span style="color:var(--muted)">🔍</span>
+      <input type="text" placeholder="Search campaigns..." oninput="filterCards(this.value)">
+    </div>
+    <div class="filter-pills">
+      <button class="pill active" onclick="filterPriority('all', this)">All</button>
+      <button class="pill" onclick="filterPriority('high', this)">🔴 High</button>
+      <button class="pill" onclick="filterPriority('med', this)">🟡 Medium</button>
+      <button class="pill" onclick="filterPriority('low', this)">🟢 Low</button>
+    </div>
+  </div>
+
+  <!-- Kanban Board -->
+  <div class="kanban">
+    <div class="column" id="col-todo" ondragover="onDragOver(event)" ondrop="onDrop(event,'todo')" ondragleave="onDragLeave(event)">
+      <div class="col-header">
+        <div class="col-title"><span style="color:var(--todo)">●</span> To Do <span class="col-badge" id="badge-todo">0</span></div>
+        <button class="col-add" onclick="openModal('todo')">+</button>
+      </div>
+      <div class="col-body" id="body-todo"></div>
+    </div>
+    <div class="column" id="col-inprog" ondragover="onDragOver(event)" ondrop="onDrop(event,'inprog')" ondragleave="onDragLeave(event)">
+      <div class="col-header">
+        <div class="col-title"><span style="color:var(--inprog)">●</span> In Progress <span class="col-badge" id="badge-inprog">0</span></div>
+        <button class="col-add" onclick="openModal('inprog')">+</button>
+      </div>
+      <div class="col-body" id="body-inprog"></div>
+    </div>
+    <div class="column" id="col-review" ondragover="onDragOver(event)" ondrop="onDrop(event,'review')" ondragleave="onDragLeave(event)">
+      <div class="col-header">
+        <div class="col-title"><span style="color:var(--review)">●</span> In Review <span class="col-badge" id="badge-review">0</span></div>
+        <button class="col-add" onclick="openModal('review')">+</button>
+      </div>
+      <div class="col-body" id="body-review"></div>
+    </div>
+    <div class="column" id="col-done" ondragover="onDragOver(event)" ondrop="onDrop(event,'done')" ondragleave="onDragLeave(event)">
+      <div class="col-header">
+        <div class="col-title"><span style="color:var(--done)">●</span> Done <span class="col-badge" id="badge-done">0</span></div>
+        <button class="col-add" onclick="openModal('done')">+</button>
+      </div>
+      <div class="col-body" id="body-done"></div>
+    </div>
+  </div>
+
+  <!-- KPI Section -->
+  <div class="kpi-section">
+    <div class="kpi-chart">
+      <div class="kpi-title">📊 Campaign Velocity — Last 6 Sprints</div>
+      <div class="chart-bars" id="velocity-chart"></div>
+      <div style="display:flex;gap:16px;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:var(--accent)"></div>Completed</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:var(--accent2)"></div>Planned</div>
+      </div>
+    </div>
+    <div class="activity-feed">
+      <div class="kpi-title">⚡ Activity Feed</div>
+      <div id="activity-list"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>New Campaign</h2>
+    <div class="form-group">
+      <label>CAMPAIGN NAME</label>
+      <input type="text" id="f-title" placeholder="e.g. Spring Sale Email Series">
+    </div>
+    <div class="form-group">
+      <label>DESCRIPTION</label>
+      <textarea id="f-desc" rows="2" placeholder="Brief campaign description..."></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>STATUS</label>
+        <select id="f-status">
+          <option value="todo">To Do</option>
+          <option value="inprog">In Progress</option>
+          <option value="review">In Review</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>PRIORITY</label>
+        <select id="f-priority">
+          <option value="high">High</option>
+          <option value="med">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>DUE DATE</label>
+        <input type="date" id="f-due">
+      </div>
+      <div class="form-group">
+        <label>CHANNEL TAG</label>
+        <select id="f-tag">
+          <option value="Email">Email</option>
+          <option value="Social">Social</option>
+          <option value="Paid">Paid Media</option>
+          <option value="SEO">SEO</option>
+          <option value="OOH">OOH</option>
+          <option value="CMS">CMS</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addCard()">Add Campaign</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let campaigns = JSON.parse(localStorage.getItem('cf-campaigns') || '[]');
+let dragId = null;
+let activeFilter = 'all';
+let searchTerm = '';
+
+const tagColors = {
+  Email: '#7c5cfc', Social: '#fc5c8a', Paid: '#fcc85c',
+  SEO: '#5cfcb4', OOH: '#5cb4fc', CMS: '#fc8a5c'
+};
+const avatarColors = ['#7c5cfc','#fc5c8a','#5cfcb4','#fcc85c','#5cb4fc'];
+const avatarInitials = ['SQ','MK','AL','PR','JD'];
+
+function saveCampaigns() { localStorage.setItem('cf-campaigns', JSON.stringify(campaigns)); }
+
+function openModal(status = 'todo') {
+  document.getElementById('f-status').value = status;
+  document.getElementById('f-due').value = '';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function addCard() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) return;
+  const c = {
+    id: Date.now().toString(),
+    title,
+    desc: document.getElementById('f-desc').value.trim(),
+    status: document.getElementById('f-status').value,
+    priority: document.getElementById('f-priority').value,
+    due: document.getElementById('f-due').value,
+    tag: document.getElementById('f-tag').value,
+    avatar: Math.floor(Math.random() * 5)
+  };
+  campaigns.push(c);
+  saveCampaigns();
+  addActivity(`New campaign <strong>${c.title}</strong> added to ${c.status}`, c.status);
+  closeModal();
+  render();
+}
+
+function deleteCard(id) {
+  const c = campaigns.find(x=>x.id===id);
+  campaigns = campaigns.filter(x=>x.id!==id);
+  saveCampaigns();
+  addActivity(`Campaign <strong>${c.title}</strong> removed`, 'todo');
+  render();
+}
+
+function moveCard(id, newStatus) {
+  const c = campaigns.find(x=>x.id===id);
+  if (!c) return;
+  c.status = newStatus;
+  saveCampaigns();
+  addActivity(`<strong>${c.title}</strong> moved to ${newStatus}`, newStatus);
+  render();
+}
+
+function onDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function onDrop(e, status) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragId) moveCard(dragId, status);
+}
+
+function filterCards(term) { searchTerm = term.toLowerCase(); render(); }
+function filterPriority(p, el) {
+  activeFilter = p;
+  document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+const statusColors = { todo: 'var(--todo)', inprog: 'var(--inprog)', review: 'var(--review)', done: 'var(--done)' };
+
+function render() {
+  ['todo','inprog','review','done'].forEach(s => {
+    const body = document.getElementById('body-'+s);
+    const filtered = campaigns.filter(c => {
+      if (c.status !== s) return false;
+      if (activeFilter !== 'all' && c.priority !== activeFilter) return false;
+      if (searchTerm && !c.title.toLowerCase().includes(searchTerm)) return false;
+      return true;
+    });
+    body.innerHTML = filtered.map(c => {
+      const isOverdue = c.due && new Date(c.due) < new Date() && c.status !== 'done';
+      const dueStr = c.due ? new Date(c.due).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'No due date';
+      const color = tagColors[c.tag] || '#7c5cfc';
+      const av = avatarInitials[c.avatar];
+      const avColor = avatarColors[c.avatar];
+      return `<div class="card" data-status="${c.status}" data-id="${c.id}" draggable="true"
+        ondragstart="dragId='${c.id}'" ondragend="dragId=null">
+        <div class="card-tag" style="background:${color}22;color:${color};border:1px solid ${color}44">${c.tag}</div>
+        <div class="card-title">${c.title}</div>
+        ${c.desc ? `<div class="card-desc">${c.desc}</div>` : ''}
+        <div class="card-meta">
+          <div class="card-due ${isOverdue?'overdue':''}">📅 ${dueStr}</div>
+          <div class="card-priority priority-${c.priority}">${c.priority.toUpperCase()}</div>
+          <div class="avatar" style="background:${avColor}33;color:${avColor}">${av}</div>
+        </div>
+        <div class="card-actions">
+          ${s !== 'inprog' && s !== 'todo' ? '' : `<button class="card-btn" onclick="moveCard('${c.id}','${s==='todo'?'inprog':'review'}')">→ Move</button>`}
+          ${s === 'review' ? `<button class="card-btn" onclick="moveCard('${c.id}','done')" style="color:var(--done)">✓ Approve</button>` : ''}
+          <button class="card-btn" onclick="deleteCard('${c.id}')" style="color:var(--todo)">✕</button>
+        </div>
+      </div>`;
+    }).join('') || `<div style="text-align:center;padding:32px 16px;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">Drop cards here</div>`;
+
+    const total = campaigns.filter(c=>c.status===s).length;
+    document.getElementById('count-'+s).textContent = total;
+    document.getElementById('badge-'+s).textContent = filtered.length;
+  });
+}
+
+// Activity feed
+const activities = [];
+function addActivity(msg, status) {
+  activities.unshift({ msg, status, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
+  if (activities.length > 8) activities.pop();
+  renderActivity();
+}
+function renderActivity() {
+  const list = document.getElementById('activity-list');
+  list.innerHTML = activities.map(a => `
+    <div class="activity-item">
+      <div class="activity-dot" style="background:${statusColors[a.status]||'var(--accent)'}"></div>
+      <div>
+        <div class="activity-text">${a.msg}</div>
+        <div class="activity-time">${a.time}</div>
+      </div>
+    </div>`).join('') || `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);padding:16px 0">No activity yet</div>`;
+}
+
+// Velocity chart
+function renderChart() {
+  const sprints = ['S1','S2','S3','S4','S5','S6'];
+  const completed = [4,6,5,8,7,campaigns.filter(c=>c.status==='done').length + 3];
+  const planned = [6,6,7,8,8,8];
+  const max = Math.max(...completed,...planned);
+  document.getElementById('velocity-chart').innerHTML = sprints.map((s,i)=>`
+    <div class="bar-group">
+      <div class="bar-track">
+        <div class="bar-fill" style="height:${(planned[i]/max*100)}%;background:rgba(252,92,138,0.3)"></div>
+        <div class="bar-fill" style="height:${(completed[i]/max*100)}%;background:var(--accent)"></div>
+      </div>
+      <div class="bar-label">${s}</div>
+    </div>`).join('');
+}
+
+// Seed data
+if (!campaigns.length) {
+  campaigns = [
+    { id:'1', title:'Spring Sale Email Series', desc:'5-touch nurture sequence for Q2 promo', status:'inprog', priority:'high', due:'2025-05-15', tag:'Email', avatar:0 },
+    { id:'2', title:'Instagram Reels — Summer Launch', desc:'8 short-form videos for social amplification', status:'inprog', priority:'high', due:'2025-05-20', tag:'Social', avatar:1 },
+    { id:'3', title:'Homepage Banner Refresh', desc:'CMS update for seasonal creative', status:'todo', priority:'med', due:'2025-05-25', tag:'CMS', avatar:2 },
+    { id:'4', title:'Paid Search — Mother\'s Day', desc:'Google Ads copy and bid strategy', status:'review', priority:'high', due:'2025-05-10', tag:'Paid', avatar:3 },
+    { id:'5', title:'SEO Blog — Trend Report', desc:'2,000 word seasonal trends piece', status:'todo', priority:'low', due:'2025-06-01', tag:'SEO', avatar:4 },
+    { id:'6', title:'Valentine\'s Day Campaign', desc:'Multi-channel campaign wrap-up', status:'done', priority:'high', due:'2025-02-14', tag:'Email', avatar:0 },
+    { id:'7', title:'OOH Billboard — Q1', desc:'Physical creative assets approved', status:'done', priority:'med', due:'2025-03-01', tag:'OOH', avatar:1 },
+    { id:'8', title:'Push Notification Strategy', desc:'Re-engagement flow for app users', status:'todo', priority:'med', due:'2025-06-10', tag:'Email', avatar:2 },
+  ];
+  saveCampaigns();
+}
+
+renderChart();
+renderActivity();
+render();
+addActivity('Dashboard loaded — 8 campaigns active', 'inprog');
+</script>
+</body>
+</html>
